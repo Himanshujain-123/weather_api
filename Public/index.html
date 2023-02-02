@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Map</title>
+    <!-- Load Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="" />
+  </head>
+  <body>
+    <!-- Create a div to hold the map -->
+    <div id="map" style="height: 500px; width: 100%;"></div>
+    <button id = "prev">Previous Page</button>
+    <button id = "next">Next Page</button>
+    
+    <!-- Load Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+    <!-- Your custom JS code -->
+    <script>
+      // Fetch the weather data from your API
+      const urlParams = new URLSearchParams(location.search)
+      let pageNumber = 1
+      if(urlParams.get('page') != undefined) pageNumber = Number(urlParams.get('page'))
+
+      let nextPageNumber = pageNumber + 1
+      let prevPageNumber = pageNumber - 1
+
+      const prevButton = document.getElementById('prev')
+      const nextButton = document.getElementById('next')
+
+      // setting up the previous and next page buttons
+      if(pageNumber == 3) nextButton.disabled = true
+      if(pageNumber == 1) prevButton.disabled = true
+      
+      prevButton.setAttribute("onclick", `location.reload(); location.href="http://localhost:3000/?page=${prevPageNumber}"`)
+      nextButton.setAttribute("onclick", `location.reload(); location.href="http://localhost:3000/?page=${nextPageNumber}"`)
+      
+      fetch(`/weather?page=${pageNumber}`)
+        .then(res => res.json())
+        .then(data => {
+          if(data.error !== undefined) throw data
+
+          const urlParams = new URLSearchParams(location.search)
+          const pageNumber = urlParams.get('page')
+
+          // Initialize the map and set the view to the center of the cities
+          const map = L.map('map').setView([20, 0], 2);
+
+          // Add a tile layer to the map
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+          }).addTo(map);
+
+          // Add markers to the map for each city
+          data.forEach(cityWeather => {
+            const marker = L.marker([cityWeather.latitude, cityWeather.longitude]);
+            marker.bindPopup(`
+              <h3>${cityWeather.city}</h3>
+              <p>Temperature: ${cityWeather.temperature} K</p>
+              <p>Description: ${cityWeather.description}</p>
+            `);
+            marker.addTo(map);
+          });
+        })
+        .catch((err) => {
+          alert(err.error)
+        })
+        
+        // window refresh after every 10 minutes
+        setInterval(function() {
+          location.reload()
+        }, 600000)
+
+    </script>
+  </body>
+</html>
